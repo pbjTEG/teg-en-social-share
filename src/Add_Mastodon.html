@@ -1,0 +1,645 @@
+<!--suppress HtmlUnknownAttribute, JSStringConcatenationToES6Template, CssUnusedSymbol -->
+<div class="pb-placeholder">
+	<p><strong>Add Mastodon to Share Links</strong></p>
+	<p>Let the JavaScript use standard images matching the page settings or set your custom image in this <code>&lt;img&gt;</code> element.<br>
+		Please ensure the <code>id</code> attribute is <code>customMastodon</code>.
+	</p>
+	<p>For example:
+		<code>&lt;img src=&quot;https://joinmastodon.org/logos/logo-purple.svg&quot; id=&quot;customMastodon&quot; alt=&quot;Free, open-source decentralized social media.&quot;&gt;</code><br>
+		<img src="https://joinmastodon.org/logos/logo-purple.svg" id="customMastodon" alt="Free, open-source decentralized social media."></p>
+	<p>The new link will allow the user to select (or set) their Mastodon instance. It will then share the &ldquo;Share title&rdquo; set in &ldquo;Social share settings&rdquo; and the page URL.</p>
+</div>
+<!--suppress CssUnusedSymbol -->
+<style>
+	/*
+ * If a block has no visible content its height is 0px and
+ * PageBuilder's editor won't edit it. So set a min-height
+ * for components.
+ *
+ * Credit where credit is due; thanks to Dave Methvin (https://www.linkedin.com/in/davemethvin/).
+ */
+	body#en__pagebuilder .en__component {
+		min-height : 2rem;
+	}
+
+	/* Add a note for the user using an
+	 * <?? class="pb-placeholder></??> element. . .
+	 *
+	 * . . .visible in Page Builder. . .
+	 */
+	body#en__pagebuilder .pb-placeholder {
+		background  : #f5f5f5;
+		color       : #999999;
+		font-weight : 700;
+		padding     : .5rem;
+		text-align  : center;
+		width       : 100%;
+	}
+
+	body#en__pagebuilder .en__placeholder * {
+		font-family : sans-serif;
+	}
+
+	body#en__pagebuilder .pb-placeholder::before {
+		content   : "Text Block";
+		display   : block;
+		font-size : 1.5rem;
+	}
+
+	/*. . .and not on the live page. */
+	body:not(#en__pagebuilder) .pb-placeholder {
+		display : none;
+	}
+
+	.pb-placeholder code {
+		color : blue;
+	}
+
+	.en__socialShare img {
+		aspect-ratio : 1 / 1;
+	}
+
+	/*noinspection CssInvalidPseudoSelector*/
+	body:has(dialog:popover-open) {
+		overflow       : hidden;
+		user-select    : none;
+		pointer-events : none;
+	}
+
+	.en__socialShare--mastodon a {
+		cursor : pointer;
+	}
+
+	/* I'd rather have a <dialog> element but EN won't le me. */
+	#mstdnInstSelBack {
+		background : rgba(0, 0, 0, 0.5);
+		display    : none;
+		height     : 100vh;
+		left       : 0;
+		position   : absolute;
+		top        : 0;
+		width      : 100vw;
+		z-index    : 1000;
+	}
+
+	#mstdnInstSel {
+		background : white;
+		border     : 2px solid black;
+		display    : none;
+		left       : 50%;
+		position   : absolute;
+		top        : 50%;
+		transform  : translate(-50%, -50%);
+		z-index    : 1001;
+	}
+
+	#mstdnInstSel * {
+		display : block;
+		margin  : 0 0 1rem;
+	}
+
+	#mstdnInstSel legend {
+		background : white;
+		border     : 2px solid black;
+		padding    : .5rem;
+	}
+
+	.en__socialShare--mastodon {
+		appearance : none;
+		background : transparent;
+		border     : none;
+		box-sizing : content-box;
+		display    : inline-block;
+		cursor     : pointer;
+	}
+</style>
+<script>
+	if (document.getElementById('en__pagebuilder') === null) {
+		// noinspection JSUnusedLocalSymbols
+		document.addEventListener("DOMContentLoaded", (event) => {
+			const firstShare = document.querySelectorAll('a.en__socialShare')[0];
+
+			if (!!firstShare) {
+				const standardMastodon = '<svg width="75" height="79" viewBox="0 0 75 79" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+				                         '<path d="M73.8393 17.4898C72.6973 9.00165 65.2994 2.31235 56.5296 1.01614C55.05 0.797115 49.4441 0 36.4582 0H36.3612C23.3717 0 20.585 0.797115 19.1054 1.01614C10.5798 2.27644 2.79399 8.28712 0.904997 16.8758C-0.00358524 21.1056 -0.100549 25.7949 0.0682394 30.0965C0.308852 36.2651 0.355538 42.423 0.91577 48.5665C1.30307 52.6474 1.97872 56.6957 2.93763 60.6812C4.73325 68.042 12.0019 74.1676 19.1233 76.6666C26.7478 79.2728 34.9474 79.7055 42.8039 77.9162C43.6682 77.7151 44.5217 77.4817 45.3645 77.216C47.275 76.6092 49.5123 75.9305 51.1571 74.7385C51.1797 74.7217 51.1982 74.7001 51.2112 74.6753C51.2243 74.6504 51.2316 74.6229 51.2325 74.5948V68.6416C51.2321 68.6154 51.2259 68.5896 51.2142 68.5661C51.2025 68.5426 51.1858 68.522 51.1651 68.5058C51.1444 68.4896 51.1204 68.4783 51.0948 68.4726C51.0692 68.4669 51.0426 68.467 51.0171 68.4729C45.9835 69.675 40.8254 70.2777 35.6502 70.2682C26.7439 70.2682 24.3486 66.042 23.6626 64.2826C23.1113 62.762 22.7612 61.1759 22.6212 59.5646C22.6197 59.5375 22.6247 59.5105 22.6357 59.4857C22.6466 59.4609 22.6633 59.4391 22.6843 59.422C22.7053 59.4048 22.73 59.3929 22.7565 59.3871C22.783 59.3813 22.8104 59.3818 22.8367 59.3886C27.7864 60.5826 32.8604 61.1853 37.9522 61.1839C39.1768 61.1839 40.3978 61.1839 41.6224 61.1516C46.7435 61.008 52.1411 60.7459 57.1796 59.7621C57.3053 59.7369 57.431 59.7154 57.5387 59.6831C65.4861 58.157 73.0493 53.3672 73.8178 41.2381C73.8465 40.7606 73.9184 36.2364 73.9184 35.7409C73.9219 34.0569 74.4606 23.7949 73.8393 17.4898Z" fill="url(#paint0_linear_549_34)"/>' +
+				                         '<path d="M61.2484 27.0263V48.114H52.8916V27.6475C52.8916 23.3388 51.096 21.1413 47.4437 21.1413C43.4287 21.1413 41.4177 23.7409 41.4177 28.8755V40.0782H33.1111V28.8755C33.1111 23.7409 31.0965 21.1413 27.0815 21.1413C23.4507 21.1413 21.6371 23.3388 21.6371 27.6475V48.114H13.2839V27.0263C13.2839 22.7176 14.384 19.2946 16.5843 16.7572C18.8539 14.2258 21.8311 12.926 25.5264 12.926C29.8036 12.926 33.0357 14.5705 35.1905 17.8559L37.2698 21.346L39.3527 17.8559C41.5074 14.5705 44.7395 12.926 49.0095 12.926C52.7013 12.926 55.6784 14.2258 57.9553 16.7572C60.1531 19.2922 61.2508 22.7152 61.2484 27.0263Z" fill="white"/>' +
+				                         '<defs>' +
+				                         '<linearGradient id="paint0_linear_549_34" x1="37.0692" y1="0" x2="37.0692" y2="79" gradientUnits="userSpaceOnUse">' +
+				                         '<stop stop-color="#6364FF"/>' +
+				                         '<stop offset="1" stop-color="#563ACC"/>' +
+				                         '</linearGradient>' +
+				                         '</defs>' +
+				                         '</svg>',
+				      bevelMastodon    = '<svg' +
+				                         '   id="Layer_1"' +
+				                         '   data-name="Layer 1"' +
+				                         '   viewBox="0 0 512 512"' +
+				                         '   version="1.1"' +
+				                         '   xmlns:xlink="http://www.w3.org/1999/xlink"' +
+				                         '   xmlns="http://www.w3.org/2000/svg"' +
+				                         '   xmlns:svg="http://www.w3.org/2000/svg">' +
+				                         '  <defs' +
+				                         '     id="defs8">' +
+				                         '    <linearGradient' +
+				                         '       id="linearGradient13">' +
+				                         '      <stop' +
+				                         '         style="stop-color:#2f0c7a;stop-opacity:1;"' +
+				                         '         offset="0"' +
+				                         '         id="stop13" />' +
+				                         '      <stop' +
+				                         '         style="stop-color:#2f0c7a;stop-opacity:0;"' +
+				                         '         offset="1"' +
+				                         '         id="stop14" />' +
+				                         '    </linearGradient>' +
+				                         '    <style' +
+				                         '       id="style1">' +
+				                         '      .cls-1 {' +
+				                         '        fill: url(#linear-gradient);' +
+				                         '      }' +
+				                         '' +
+				                         '      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6 {' +
+				                         '        stroke-width: 0px;' +
+				                         '      }' +
+				                         '' +
+				                         '      .cls-2 {' +
+				                         '        fill: url(#linear-gradient-4);' +
+				                         '      }' +
+				                         '' +
+				                         '      .cls-3 {' +
+				                         '        fill: url(#linear-gradient-2);' +
+				                         '      }' +
+				                         '' +
+				                         '      .cls-4 {' +
+				                         '        fill: url(#linear-gradient-3);' +
+				                         '      }' +
+				                         '' +
+				                         '      .cls-5 {' +
+				                         '        fill: #1e1e1e;' +
+				                         '      }' +
+				                         '' +
+				                         '      .cls-6 {' +
+				                         '        fill: #ffffff;' +
+				                         '      }' +
+				                         '    </style>' +
+				                         '    <linearGradient' +
+				                         '       id="linear-gradient"' +
+				                         '       x1="364.28"' +
+				                         '       y1="199.91"' +
+				                         '       x2="-379.59"' +
+				                         '       y2="598.95"' +
+				                         '       gradientTransform="translate(0 514) scale(1 -1)"' +
+				                         '       gradientUnits="userSpaceOnUse">' +
+				                         '      <stop' +
+				                         '         offset="0"' +
+				                         '         stop-color="#666"' +
+				                         '         stop-opacity="0"' +
+				                         '         id="stop1"' +
+				                         '         style="stop-color:#6364ff;stop-opacity:0;" />' +
+				                         '      <stop' +
+				                         '         offset="1"' +
+				                         '         stop-color="#525252"' +
+				                         '         id="stop2"' +
+				                         '         style="stop-color:#6364ff;stop-opacity:1;" />' +
+				                         '    </linearGradient>' +
+				                         '    <linearGradient' +
+				                         '       id="linear-gradient-2"' +
+				                         '       x1="256"' +
+				                         '       y1="76.62"' +
+				                         '       x2="256"' +
+				                         '       y2="9.53"' +
+				                         '       gradientTransform="translate(0 514) scale(1 -1)"' +
+				                         '       gradientUnits="userSpaceOnUse">' +
+				                         '      <stop' +
+				                         '         offset="0"' +
+				                         '         stop-color="#242424"' +
+				                         '         stop-opacity="0"' +
+				                         '         id="stop3"' +
+				                         '         style="stop-color:#6364ff;stop-opacity:0;" />' +
+				                         '      <stop' +
+				                         '         offset="1"' +
+				                         '         stop-color="#303030"' +
+				                         '         id="stop4"' +
+				                         '         style="stop-color:#2f0c7a;stop-opacity:1;" />' +
+				                         '    </linearGradient>' +
+				                         '    <linearGradient' +
+				                         '       id="linear-gradient-3"' +
+				                         '       x1="483.35"' +
+				                         '       y1="26.53"' +
+				                         '       x2="242.37"' +
+				                         '       y2="267.51"' +
+				                         '       gradientTransform="translate(0 514) scale(1 -1)"' +
+				                         '       gradientUnits="userSpaceOnUse">' +
+				                         '      <stop' +
+				                         '         offset="0"' +
+				                         '         stop-color="#4a4a4a"' +
+				                         '         stop-opacity="0"' +
+				                         '         id="stop5"' +
+				                         '         style="stop-color:#2f0c7a;stop-opacity:0;" />' +
+				                         '      <stop' +
+				                         '         offset="1"' +
+				                         '         stop-color="#000"' +
+				                         '         id="stop6"' +
+				                         '         style="stop-color:#2f0c7a;stop-opacity:1;" />' +
+				                         '    </linearGradient>' +
+				                         '    <linearGradient' +
+				                         '       id="linear-gradient-4"' +
+				                         '       x1="140.87"' +
+				                         '       y1="352.82"' +
+				                         '       x2="140.86"' +
+				                         '       y2="352.83"' +
+				                         '       gradientTransform="translate(0 514) scale(1 -1)"' +
+				                         '       gradientUnits="userSpaceOnUse">' +
+				                         '      <stop' +
+				                         '         offset="0"' +
+				                         '         stop-color="#00b0ed"' +
+				                         '         stop-opacity="0"' +
+				                         '         id="stop7" />' +
+				                         '      <stop' +
+				                         '         offset="1"' +
+				                         '         stop-color="#00a2ce"' +
+				                         '         id="stop8" />' +
+				                         '    </linearGradient>' +
+				                         '    <linearGradient' +
+				                         '       xlink:href="#linearGradient13"' +
+				                         '       id="linearGradient14"' +
+				                         '       x1="150.61328"' +
+				                         '       y1="139.69141"' +
+				                         '       x2="511.15063"' +
+				                         '       y2="510.90039"' +
+				                         '       gradientUnits="userSpaceOnUse" />' +
+				                         '  </defs>' +
+				                         '  <path' +
+				                         '     class="cls-5"' +
+				                         '     d="m420.42,503.23c-109.5,11.69-219.34,11.69-328.84,0-43.66-4.66-78.15-39.15-82.81-82.82-11.69-109.5-11.69-219.34,0-328.84C13.43,47.91,47.91,13.43,91.58,8.77c109.5-11.69,219.34-11.69,328.84,0,43.67,4.66,78.16,39.15,82.82,82.81,11.69,109.5,11.69,219.34,0,328.84-4.66,43.67-39.14,78.16-82.81,82.82Z"' +
+				                         '     id="path8"' +
+				                         '     style="fill:#563acc;fill-opacity:1" />' +
+				                         '  <path' +
+				                         '     class="cls-1"' +
+				                         '     d="m475.39,110.1c-4.13-38.75-34.73-69.35-73.48-73.49-97.17-10.37-194.63-10.37-291.8,0-38.75,4.14-69.35,34.74-73.49,73.49-10.37,97.17-10.37,194.63,0,291.8,4.14,38.75,34.74,69.36,73.49,73.49,97.17,10.37,194.63,10.37,291.8,0,38.75-4.13,69.36-34.74,73.49-73.49,10.37-97.17,10.37-194.63,0-291.8Z"' +
+				                         '     id="path9" />' +
+				                         '  <path' +
+				                         '     class="cls-3"' +
+				                         '     d="m7.67,409.8c.35,3.54.71,7.08,1.09,10.62,4.66,43.66,39.15,78.15,82.82,82.81,109.5,11.69,219.34,11.69,328.84,0,43.67-4.66,78.15-39.15,82.81-82.81.38-3.54.74-7.08,1.1-10.62H7.67Z"' +
+				                         '     id="path10" />' +
+				                         '  <path' +
+				                         '     class="cls-2"' +
+				                         '     d="m140.87,161.18s0,0,0,0"' +
+				                         '     id="path12" />' +
+				                         '  <path' +
+				                         '     id="path13"' +
+				                         '     style="mix-blend-mode:normal;fill:url(#linearGradient14);fill-opacity:1"' +
+				                         '     class="cls-5"' +
+				                         '     d="m 150.61328,189.66016 10.76758,138.19922 1.78125,30.06445 147.69922,152.97656 c 36.54017,-1.29925 73.06877,-3.77434 109.55859,-7.66992 l 0.01,0.01 c 43.67,-4.66 78.15054,-39.15031 82.81054,-82.82031 4.10951,-38.49365 6.68997,-77.02998 7.91016,-115.57812 L 356.91211,146.77148 242.41992,139.69141 Z" />' +
+				                         '  <path' +
+				                         '     d="m 377.6032,183.81552 c -3.7937,-27.75499 -28.37121,-49.62779 -57.50595,-53.86616 -4.91537,-0.71617 -23.53938,-3.3226 -66.68067,-3.3226 h -0.32218 c -43.15327,0 -52.41152,2.60643 -57.32689,3.3226 -28.32361,4.12095 -54.18931,23.77477 -60.46486,51.85847 -3.01848,13.83047 -3.34061,29.1637 -2.77987,43.22882 0.79934,20.17039 0.95445,40.30549 2.81565,60.394 1.28669,13.34352 3.53129,26.58087 6.71699,39.61285 5.96535,24.06827 30.11313,44.09786 53.77167,52.26906 25.33006,8.52168 52.57028,9.93658 78.67119,4.08594 2.87107,-0.65769 5.71086,-1.42056 8.51836,-2.2896 6.33526,-1.98406 13.76822,-4.2031 19.23244,-8.10098 0.0749,-0.0546 0.13647,-0.12514 0.17973,-0.20669 0.0433,-0.0812 0.0676,-0.17108 0.0706,-0.26294 v -19.46577 c -0.001,-0.0859 -0.0233,-0.17041 -0.0609,-0.2473 -0.0386,-0.0769 -0.0942,-0.14412 -0.16309,-0.19704 -0.0686,-0.0529 -0.14845,-0.0899 -0.23332,-0.1085 -0.0852,-0.02 -0.17341,-0.0166 -0.25829,9.9e-4 -16.7225,3.93083 -33.85873,5.90124 -51.05153,5.87029 -29.58807,0 -37.54592,-13.81882 -39.82487,-19.57161 -1.83162,-4.97195 -2.99489,-10.15858 -3.45987,-15.42743 -0.003,-0.0882 0.0133,-0.17674 0.0483,-0.25762 0.0363,-0.0812 0.0919,-0.15244 0.16143,-0.20869 0.0699,-0.0559 0.15211,-0.0949 0.23998,-0.11383 0.0879,-0.02 0.17907,-0.0166 0.26627,0.003 16.44392,3.90421 33.30056,5.87461 50.21644,5.87029 4.0683,0 8.12461,0 12.19323,-0.10551 17.01308,-0.46964 34.94479,-1.3267 51.6836,-4.54392 0.41771,-0.0819 0.83509,-0.15244 1.19323,-0.25829 26.40246,-4.98959 51.52849,-20.65167 54.0817,-60.31145 0.0955,-1.56135 0.33417,-16.35472 0.33417,-17.97498 0.0133,-5.50616 1.80166,-39.06101 -0.26261,-59.6774 z m -40.636,98.96173 h -27.76245 v -66.92164 c 0,-14.08874 -5.96547,-21.27408 -18.09912,-21.27408 -13.33853,0 -20.01961,8.50005 -20.01961,25.28946 v 36.63061 h -27.5957 v -36.63061 c 0,-16.78941 -6.69306,-25.28946 -20.03159,-25.28946 -12.06209,0 -18.08715,7.18534 -18.09913,21.27408 v 66.92164 H 177.62079 V 213.8243 c 0,-14.08875 3.6549,-25.28147 10.96438,-33.57815 7.54014,-8.27704 17.43079,-12.52707 29.70756,-12.52707 14.20924,0 24.94696,5.37702 32.10534,16.11974 l 6.90807,11.41205 6.91973,-11.41205 c 7.15837,-10.74272 17.8961,-16.11974 32.0817,-16.11974 12.26479,0 22.15511,4.25003 29.71921,12.52707 7.30981,8.28903 10.96439,19.48174 10.96439,33.57815 z"' +
+				                         '     fill="inherit"' +
+				                         '     id="path1"' +
+				                         '     style="fill:#ffffff;fill-opacity:1;stroke-width:0.999999" />' +
+				                         '</svg>',
+				      simpleMastodon   = '<svg' +
+				                         '   version="1.1"' +
+				                         '   id="Capa_1"' +
+				                         '   x="0px"' +
+				                         '   y="0px"' +
+				                         '   viewBox="0 0 52 52"' +
+				                         '   style="enable-background:new 0 0 52 52;"' +
+				                         '   xml:space="preserve"' +
+				                         '   xmlns="http://www.w3.org/2000/svg"' +
+				                         '   xmlns:svg="http://www.w3.org/2000/svg">' +
+				                         '<path' +
+				                         '   d="M 49.668231,12.080436 C 48.933194,6.702851 44.171253,2.4649538 38.526338,1.6437604 37.573975,1.505001 33.965535,1 25.606826,1 h -0.06243 C 17.18337,1 15.389565,1.505001 14.437202,1.6437604 8.9494455,2.4422024 3.9379152,6.2501692 2.7220124,11.691443 c -0.5848343,2.67968 -0.6472473,5.650525 -0.538602,8.37567 0.154877,3.908052 0.1849278,7.809269 0.5455371,11.701457 0.2492987,2.585335 0.6841945,5.150097 1.3014309,7.67507 1.1557972,4.663274 5.8344779,8.544048 10.4183666,10.127235 4.90775,1.651093 10.185597,1.925232 15.242702,0.791658 0.556276,-0.127429 1.106489,-0.275236 1.650448,-0.443615 1.227469,-0.384414 2.667621,-0.814357 3.726325,-1.569579 0.01451,-0.01058 0.02644,-0.02425 0.03482,-0.04005 0.0084,-0.01574 0.01309,-0.03315 0.01367,-0.05094 v -3.771531 c -2.58e-4,-0.01664 -0.0042,-0.03302 -0.0118,-0.04791 -0.0075,-0.0149 -0.01825,-0.02792 -0.0316,-0.03817 -0.01328,-0.01025 -0.02876,-0.01741 -0.04521,-0.02102 -0.01651,-0.0037 -0.0336,-0.0036 -0.05004,1.94e-4 -3.240019,0.761606 -6.560197,1.143377 -9.891337,1.137379 -5.732748,0 -7.274597,-2.677423 -7.716149,-3.792038 -0.354878,-0.963326 -0.580265,-1.968246 -0.670355,-2.989095 -9.03e-4,-0.01709 0.0023,-0.03425 0.0093,-0.04991 0.007,-0.01574 0.0178,-0.02954 0.03128,-0.04043 0.01354,-0.01084 0.02947,-0.01838 0.0465,-0.02206 0.01703,-0.0037 0.0347,-0.0034 0.05159,9.62e-4 3.186043,0.756448 6.452051,1.138218 9.729537,1.13738 0.78824,0 1.574158,0 2.362462,-0.02044 3.296317,-0.09099 6.770622,-0.25705 10.013801,-0.880394 0.08094,-0.01586 0.161801,-0.02954 0.23119,-0.05004 5.115531,-0.966743 9.983749,-4.001303 10.478439,-11.685465 0.01851,-0.302515 0.06475,-3.168759 0.06475,-3.482688 0.0023,-1.06683 0.349075,-7.568148 -0.05089,-11.562615 z M 41.794925,31.25447 h -5.37903 V 18.288268 c 0,-2.729723 -1.155823,-4.121895 -3.506742,-4.121895 -2.584367,0 -3.87884,1.646901 -3.87884,4.899882 v 7.097255 h -5.346721 v -7.097255 c 0,-3.252981 -1.296794,-4.899882 -3.881161,-4.899882 -2.337054,0 -3.50442,1.392172 -3.506741,4.121895 V 31.25447 H 10.921238 V 17.894697 c 0,-2.729723 0.708146,-4.898334 2.124372,-6.505833 1.460917,-1.6036937 3.37725,-2.4271443 5.755899,-2.4271443 2.753068,0 4.833524,1.0418073 6.220473,3.1232303 l 1.338453,2.211109 1.340711,-2.211109 c 1.386949,-2.081423 3.467404,-3.1232303 6.215894,-3.1232303 2.376328,0 4.292596,0.8234506 5.758156,2.4271443 1.416291,1.606015 2.124372,3.774627 2.124372,6.505833 z"' +
+				                         '   fill="inherit"' +
+				                         '   id="path1-5"' +
+				                         '   style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:1" />' +
+				                         '</svg>',
+				      blackMastodon    = '<svg\n' +
+				                         '   height="512pt"' +
+				                         '   viewBox="0 0 512 512"' +
+				                         '   width="512pt"' +
+				                         '   version="1.1"' +
+				                         '   id="svg2"' +
+				                         '   xmlns="http://www.w3.org/2000/svg"' +
+				                         '   xmlns:svg="http://www.w3.org/2000/svg">' +
+				                         '  <defs' +
+				                         '     id="defs2" />' +
+				                         '  <path' +
+				                         '     id="path2"' +
+				                         '     d="M 36.925781,0 C 16.53125,0 0,16.53125 0,36.925781 V 475.07373 c 0,20.39453 16.53125,36.92578 36.925781,36.92578 H 475.07373 c 20.39453,0 36.92578,-16.53125 36.92578,-36.92578 V 36.925781 C 511.99951,16.53125 495.46826,0 475.07373,0 Z M 253.34619,84.175781 h 0.36328 c 49.75562,0 73.11685,3.159038 79.03272,4.020996 41.97225,6.107436 78.2358,36.462733 86.12695,78.594723 0.006,0.001 0.38067,-0.0416 0.38086,-0.0396 0.0255,0.23158 0.018,0.15669 0.019,0.17139 0.006,0.0589 0.005,0.0473 0.006,0.0586 10e-4,0.005 0.002,0.0233 0.003,0.0293 -0.002,-0.0208 -7e-5,0.007 0.003,0.0337 0.005,0.0468 0.0101,0.0908 0.0205,0.19483 0.014,0.13976 0.0274,0.28258 0.0542,0.55078 0.0675,0.67372 0.17929,1.77872 0.43799,4.3623 1.00965,10.08332 0.78827,23.64595 0.71777,38.4375 -0.0704,14.7623 -0.28697,29.40033 -0.29297,31.53076 v 0.063 c -8.2e-4,2.1972 -0.071,5.91634 -0.15234,10.56446 -0.0817,4.67561 0.006,6.69931 -0.27246,11.25292 l -0.004,0.041 -0.001,0.0439 c -1.77852,27.62655 -12.46932,50.5575 -28.38135,65.81982 -15.38672,14.75846 -34.18674,22.10112 -51.9624,25.70361 -1.67276,0.43877 -2.97814,0.70013 -2.99414,0.70313 l -0.0557,0.0117 -0.0542,0.009 c -0.73183,0.14066 -1.4609,0.21237 -2.19287,0.3457 0.56798,2.11148 0.93052,4.24905 0.97412,6.36914 l 0.004,0.26807 v 22.6831 l -0.0132,0.43799 c -0.12909,3.8254 -1.13477,7.8973 -3.17578,11.70264 -1.93724,3.61045 -4.62193,6.66689 -7.80175,8.97949 l -0.0952,0.0703 -0.0981,0.0674 c -11.44643,8.16536 -22.14804,10.6349 -29.042,12.79395 l -0.041,0.0117 -0.041,0.0132 c -3.79486,1.17463 -7.63074,2.20289 -11.50049,3.08936 l -0.0586,0.0147 -0.0601,0.0132 c -34.10955,7.6458 -69.68743,5.80102 -102.80127,-5.33936 l -0.0981,-0.0337 -0.0996,-0.0351 c -33.94378,-11.72354 -67.59161,-37.5258 -77.45801,-77.3335 l -0.0102,-0.041 -0.0103,-0.041 C 98.828436,324.44735 96.085491,308.27251 94.513184,291.9668 l -0.0029,-0.0483 -0.0059,-0.0498 c -2.236158,-24.13577 -2.389027,-47.32753 -3.269532,-69.54785 -0.67883,-17.02771 -0.463085,-36.23728 3.716309,-55.38721 l 0.01318,-0.0645 0.01465,-0.063 c 9.837876,-44.02523 48.491396,-72.583735 89.891606,-78.609373 0.62652,-0.09128 7.16033,-1.41552 17.61767,-2.346679 10.45734,-0.931158 25.97351,-1.674317 50.85791,-1.674317 z m 60.92139,304.094239 c -0.16245,0.0382 -0.32821,0.0617 -0.49072,0.0996 0.0321,-0.007 0.0646,-0.003 0.0967,-0.0102 z" />' +
+				                         '  <path' +
+				                         '     id="path8"' +
+				                         '     d="M 253.34473 110.17529 C 204.62284 110.17529 194.17032 113.11816 188.62061 113.92676 C 156.64203 118.57949 127.43843 140.76885 120.35303 172.47656 C 116.94507 188.09179 116.58079 205.40356 117.21387 221.28369 C 118.11642 244.05692 118.29268 266.79133 120.39404 289.47217 C 121.84675 304.53759 124.38072 319.4831 127.97754 334.19678 C 134.71269 361.37091 161.97648 383.98382 188.68799 393.20947 C 217.28671 402.83085 248.04261 404.42936 277.51172 397.82373 C 280.75328 397.08117 283.95861 396.21944 287.12842 395.23828 C 294.2812 392.99817 302.67394 390.49271 308.84326 386.0918 C 308.92796 386.0302 308.99681 385.95108 309.04541 385.85889 C 309.09551 385.76719 309.12248 385.66524 309.12598 385.56152 L 309.12598 363.58301 C 309.12398 363.48581 309.10073 363.39137 309.05713 363.30469 C 309.01203 363.21809 308.95022 363.14166 308.87256 363.08203 C 308.79496 363.02243 308.70459 362.98052 308.60889 362.95898 C 308.51269 362.93898 308.41309 362.93952 308.31738 362.96045 C 289.43694 367.39853 270.09012 369.62232 250.67871 369.5874 C 217.27248 369.5874 208.28688 353.98539 205.71387 347.49023 C 203.64587 341.87663 202.33359 336.02201 201.80859 330.07324 C 201.80359 329.97354 201.82319 329.87293 201.86279 329.78174 C 201.90289 329.69004 201.96576 329.60903 202.04443 329.5459 C 202.12313 329.4828 202.21768 329.4395 202.31689 329.41846 C 202.41609 329.39846 202.51848 329.39785 202.61719 329.42285 C 221.18312 333.83087 240.21521 336.05613 259.31396 336.05127 C 263.90727 336.05127 268.48686 336.05041 273.08057 335.93115 C 292.28905 335.40089 312.53378 334.43366 331.43262 330.80127 C 331.90411 330.70857 332.37592 330.62901 332.78027 330.50977 C 362.58979 324.87628 390.95817 307.19265 393.84082 262.41504 C 393.94855 260.65219 394.21875 243.95043 394.21875 242.12109 C 394.23375 235.9046 395.0866 186.38452 393.92139 174.74414 C 389.63813 143.40756 361.88806 118.71208 328.99365 113.92676 C 323.44399 113.11816 302.41788 110.17529 253.70947 110.17529 L 253.34473 110.17529 z M 214.05322 156.56982 C 230.09611 156.56982 242.21864 162.64004 250.30078 174.76904 L 258.10107 187.65381 L 265.91309 174.76904 C 273.99522 162.64004 286.11812 156.56982 302.13428 156.56982 C 315.98179 156.56982 327.14919 161.36774 335.68945 170.71289 C 343.94255 180.07156 348.06885 192.70905 348.06885 208.62451 L 348.04102 286.4751 L 316.69629 286.4751 L 316.69629 210.91846 C 316.69629 195.01161 309.96112 186.89941 296.26172 186.89941 C 281.20195 186.89941 273.65918 196.49614 273.65918 215.45215 L 273.65918 256.80908 L 242.50195 256.80908 L 242.50195 215.45215 C 242.50195 196.49614 234.94459 186.89941 219.88477 186.89941 C 206.26614 186.89941 199.46372 195.01161 199.4502 210.91846 L 199.4502 286.4751 L 168.13184 286.4751 L 168.13184 208.62451 C 168.13184 192.71772 172.25854 180.08023 180.51123 170.71289 C 189.02438 161.36774 200.19223 156.56982 214.05322 156.56982 z " />' +
+				                         '</svg>',
+				      mstdnButton      = document.createElement('button'),
+				      newImage         = document.createElement('img'),
+				      firstImage       = firstShare.querySelector('img').src,
+				      shareImageMatch  = firstImage.match(/^.*-(.*)\.svg$/),
+				      shareImageStyle  = shareImageMatch ? shareImageMatch[1] : 'custom',
+				      shareText        = document.querySelector('meta[name="title"]').content + ' ' + document.querySelector('link[rel="canonical"]').href,
+				      mstdnInstSel     = document.querySelector('#mstdnInstSel'),
+				      mstdnInstSelBack = document.querySelector('#mstdnInstSelBack'),
+				      mstdnInsts       = document.querySelector('#mstdnInsts'),
+				      mstdnInstOther   = document.querySelector('#mstdnInstOther');
+				let newImageSrc = standardMastodon;
+
+				window.mstdnInstSelOpen = () => {
+					mstdnInstSel.style.display = 'block';
+					mstdnInstSelBack.style.display = 'block';
+				};
+				window.mstdnInstSelChange = () => { if (mstdnInsts.value === 'Other') mstdnInstOther.style.display = 'block'; };
+				window.mstdnPost = () => {
+					switch (mstdnInsts.value) {
+						case 'Other':
+							if (mstdnInstOther.value !== '') {
+								window.open(`https://${mstdnInstOther.value}/share?text=${shareText}`, '_blank');
+							}
+							// else do nothing
+							break;
+
+						case '':
+							// do nothing
+							break;
+
+						default:
+							window.open(`https://${mstdnInsts.value}/share?text=${shareText}`, '_blank');
+					}
+					mstdnInstSel.style.display = 'none';
+					mstdnInstSelBack.style.display = 'none';
+				};
+
+				newImage.alt = 'Share on Mastodon';
+
+				for (let styleProp in firstShare.style) {
+					mstdnButton.style[styleProp] = firstShare.style[styleProp];
+				}
+
+				switch (shareImageStyle) {
+					case 'bevel':
+						newImageSrc = bevelMastodon;
+						mstdnButton.classList.add('en__socialShareBevel');
+						break;
+
+					case 'simple':
+						newImageSrc = simpleMastodon;
+						mstdnButton.classList.add('en__socialShareSimple');
+						break;
+
+					case 'black':
+						newImageSrc = blackMastodon;
+						mstdnButton.classList.add('en__socialShareBlack');
+						break;
+
+					case 'custom':
+						const customImage = document.querySelector('#customMastodon');
+						newImageSrc = customImage.src;
+						newImage.alt = customImage.alt;
+						mstdnButton.classList.add('en__socialShareCustom');
+						break;
+
+					default:
+						newImageSrc = standardMastodon;
+				}
+
+				mstdnButton.classList.add('en__socialShare');
+				mstdnButton.classList.add('en__socialShare--mastodon');
+				mstdnButton.setAttribute('type', 'button');
+				mstdnButton.addEventListener('click', mstdnInstSelOpen);
+				mstdnButton.addEventListener('keydown', mstdnInstSelOpen);
+				newImage.src = `data:image/svg+xml,${encodeURIComponent(newImageSrc)}`;
+				newImage.classList.add('en__socialShare__image');
+				mstdnButton.setAttribute('popovertarget', 'mstdnInstSel');
+				mstdnButton.appendChild(newImage);
+				document.querySelector('div.en__socialShares').appendChild(mstdnButton);
+				document.querySelector('body').appendChild(mstdnInstSelBack);
+			} // end if share buttons exist
+		}); // end page loaded
+	} // end if live page
+</script>
+<!-- EN rewrites <dialog> elements -->
+<div id="mstdnInstSelBack">
+	<fieldset id="mstdnInstSel">
+		<legend for="mstdnInstSel">Select Your Mastodon Instance<br>
+			Select &ldquo;Other&rdquo; to enter it yourself. You must be logged in to Mastodon.
+		</legend>
+		<select id="mstdnInsts" title="select your instance domain name" onchange="mstdnInstSelChange()">
+			<option></option>
+			<option>23.illuminati.org</option>
+			<option>4bear.com</option>
+			<option>ani.work</option>
+			<option>apobangpo.space</option>
+			<option>archaeo.social</option>
+			<option>arvr.social</option>
+			<option>aus.social</option>
+			<option>babka.social</option>
+			<option>bark.lgbt</option>
+			<option>birdon.social</option>
+			<option>blorbo.social</option>
+			<option>bookstodon.com</option>
+			<option>c.im</option>
+			<option>camp.smolnet.org</option>
+			<option>ceilidh.online</option>
+			<option>climatejustice.social</option>
+			<option>clj.social</option>
+			<option>computerfairi.es</option>
+			<option>convo.casa</option>
+			<option>corteximplant.com</option>
+			<option>cosocial.ca</option>
+			<option>cr8r.gg</option>
+			<option>cultur.social</option>
+			<option>cupoftea.social</option>
+			<option>cville.online</option>
+			<option>cwb.social</option>
+			<option>cyberfurz.social</option>
+			<option>cyberplace.social</option>
+			<option>dariox.club</option>
+			<option>darticulate.com</option>
+			<option>datasci.social</option>
+			<option>defcon.social</option>
+			<option>det.social</option>
+			<option>disabled.social</option>
+			<option>discuss.systems</option>
+			<option>dmv.community</option>
+			<option>donphan.social</option>
+			<option>drumstodon.net</option>
+			<option>drupal.community</option>
+			<option>earthstream.social</option>
+			<option>elekk.xyz</option>
+			<option>epicure.social</option>
+			<option>episcodon.net</option>
+			<option>esq.social</option>
+			<option>eupolicy.social</option>
+			<option>expressional.social</option>
+			<option>fairy.id</option>
+			<option>famichiki.jp</option>
+			<option>fandom.ink</option>
+			<option>federated.press</option>
+			<option>flipboard.social</option>
+			<option>freemasonry.social</option>
+			<option>freeradical.zone</option>
+			<option>friendsofdesoto.social</option>
+			<option>frontrange.co</option>
+			<option>furries.club</option>
+			<option>furry.engineer</option>
+			<option>gamepad.club</option>
+			<option>gardenstate.social</option>
+			<option>gaygeek.social</option>
+			<option>genealysis.social</option>
+			<option>glasgow.social</option>
+			<option>graphics.social</option>
+			<option>growers.social</option>
+			<option>guitar.rodeo</option>
+			<option>h-net.social</option>
+			<option>hachyderm.io</option>
+			<option>hcommons.social</option>
+			<option>hear-me.social</option>
+			<option>historians.social</option>
+			<option>hometech.social</option>
+			<option>hoosier.social</option>
+			<option>hostux.social</option>
+			<option>ieji.de</option>
+			<option>indieauthors.social</option>
+			<option>indieweb.social</option>
+			<option>infosec.exchange</option>
+			<option>ioc.exchange</option>
+			<option>is.nota.live</option>
+			<option>jaxbeach.social</option>
+			<option>jvm.social</option>
+			<option>k8s.social</option>
+			<option>kcmo.social</option>
+			<option>kolektiva.social</option>
+			<option>kzoo.to</option>
+			<option>learningdisability.social</option>
+			<option>lgbtqia.space</option>
+			<option>library.love</option>
+			<option>libretooth.gr</option>
+			<option>lor.sh</option>
+			<option>lounge.town</option>
+			<option>mapstodon.space</option>
+			<option>mas.to</option>
+			<option>masr.social</option>
+			<option>mast.hpc.social</option>
+			<option>masto.nu</option>
+			<option>masto.nyc</option>
+			<option>masto.yttrx.com</option>
+			<option>mastoart.social</option>
+			<option>mastodon.africa</option>
+			<option>mastodon.au</option>
+			<option>mastodon.babb.no</option>
+			<option>mastodon.berlin</option>
+			<option>mastodon.bot</option>
+			<option>mastodon.cipherbliss.com</option>
+			<option>mastodon.com.pl</option>
+			<option>mastodon.education</option>
+			<option>mastodon.ee</option>
+			<option>mastodon.energy</option>
+			<option>mastodon.frl</option>
+			<option>mastodon.gamedev.place</option>
+			<option>mastodon.green</option>
+			<option>mastodon.holeyfox.co</option>
+			<option>mastodon.hosnet.fr</option>
+			<option>mastodon.ie</option>
+			<option>mastodon.iow.social</option>
+			<option>mastodon.london</option>
+			<option>mastodon.me.uk</option>
+			<option>mastodon.nz</option>
+			<option>mastodon.pirateparty.be</option>
+			<option>mastodon.scot</option>
+			<option>mastodon.sdf.org</option>
+			<option>mastodon.sg</option>
+			<option>mastodon.social</option>
+			<option>mastodon.vanlife.is</option>
+			<option>mastodon.world</option>
+			<option>mastodonapp.uk</option>
+			<option>mathstodon.xyz</option>
+			<option>mcr.wtf</option>
+			<option>metalhead.club</option>
+			<option>metalverse.social</option>
+			<option>mindly.social</option>
+			<option>mograph.social</option>
+			<option>mountains.social</option>
+			<option>ms.maritime.social</option>
+			<option>mstdn.business</option>
+			<option>mstdn.ca</option>
+			<option>mstdn.dk</option>
+			<option>mstdn.games</option>
+			<option>mstdn.party</option>
+			<option>mstdn.plus</option>
+			<option>mstdn.social</option>
+			<option>musician.social</option>
+			<option>musicians.today</option>
+			<option>musicworld.social</option>
+			<option>nautical.social</option>
+			<option>nerdculture.de</option>
+			<option>neurodiversity-in.au</option>
+			<option>nfld.me</option>
+			<option>noc.social</option>
+			<option>nomanssky.social</option>
+			<option>norcal.social</option>
+			<option>ohai.social</option>
+			<option>okla.social</option>
+			<option>opalstack.social</option>
+			<option>opencoaster.net</option>
+			<option>paktodon.asia</option>
+			<option>pawb.fun</option>
+			<option>peoplemaking.games</option>
+			<option>phpc.social</option>
+			<option>planetearth.social</option>
+			<option>pnw.zone</option>
+			<option>poweredbygay.social</option>
+			<option>publishing.social</option>
+			<option>qaf.men</option>
+			<option>rail.chat</option>
+			<option>raphus.social</option>
+			<option>ravenation.club</option>
+			<option>retro.pizza</option>
+			<option>ruby.social</option>
+			<option>sakurajima.moe</option>
+			<option>sciences.social</option>
+			<option>seocommunity.social</option>
+			<option>sfba.social</option>
+			<option>silversword.online</option>
+			<option>skastodon.com</option>
+			<option>socel.net</option>
+			<option>social.linux.pizza</option>
+			<option>social.seattle.wa.us</option>
+			<option>social.silicon.moe</option>
+			<option>social.sndevs.com</option>
+			<option>social.tchncs.de</option>
+			<option>social.veraciousnetwork.com</option>
+			<option>social.vivaldi.net</option>
+			<option>squawk.mytransponder.com</option>
+			<option>stranger.social</option>
+			<option>sunny.garden</option>
+			<option>synapse.cafe</option>
+			<option>tech.lgbt</option>
+			<option>techhub.social</option>
+			<option>techtoots.com</option>
+			<option>theatl.social</option>
+			<option>theblower.au</option>
+			<option>thecanadian.social</option>
+			<option>tilde.zone</option>
+			<option>toad.social</option>
+			<option>todon.nl</option>
+			<option>toot.community</option>
+			<option>toot.funami.tech</option>
+			<option>toot.garden</option>
+			<option>toot.io</option>
+			<option>toot.wales</option>
+			<option>toots.nu</option>
+			<option>union.place</option>
+			<option>universeodon.com</option>
+			<option>urbanists.social</option>
+			<option>urusai.social</option>
+			<option>veganism.social</option>
+			<option>vermont.masto.host</option>
+			<option>vmst.io</option>
+			<option>wargamers.social</option>
+			<option>wehavecookies.social</option>
+			<option>woof.tech</option>
+			<option>x0r.be</option>
+			<option>xreality.social</option>
+			<option>Other</option>
+		</select>
+		<input id="mstdnInstOther" type="text" pattern="/[w.]+/" title="enter your instance domain name" style="display: none;">
+		<button type="button" onclick="mstdnPost()">Post To Mastodon</button>
+	</fieldset>
+</div>
