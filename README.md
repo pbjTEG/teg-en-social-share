@@ -27,27 +27,37 @@ The customization will pick up title and canonical URL from the meta data tags g
 
 ### Optional
 
-In order to use the "custom" image setting in EN, there is an `<img>` tag which allows linking to a custom image. The `id` attribute of the image must be `customMastodon`.
+In order to use the "custom" image setting in EN, there is an `<img>` tag which allows linking to a custom image. The `id` attribute of the image must be:
+
+* For Bluesky `customBluesky`
+* For Mastodon `customMastodon`
+* For Threads `customThreads`
 
 For example:
 
 ```<img src="https://joinmastodon.org/logos/logo-purple.svg" id="customMastodon" alt="Free, open-source decentralized social media.">```
 
-## Bluesky
+## What Happens?
 
-The link will simply share the title and canonical URL. 
+### Bluesky and Threads
 
-### Styles
+The link will simply share the title and canonical URL.
 
-The `<a>` element can be selected in CSS with `.en__socialShare.en__socialShare--bluesky` similar to the standard buttons. The base styles for `.en__socialShare` will apply. The `<img>` element can be selected with the same `.en__socialShare__image` selector and will pick up EN's base styles.
+### Mastodon
 
-## Mastodon
+The button will show a popup allowing the user to select (or specify) their Mastodon instance. Then, it will share the title and canonical URL just like the Bluesky and Threads links.
 
-The button will show a popup allowing the user to select (or specify) their Mastodon instance. Then, it will share the title an canonical URL just like the Bluesky link.
+## Styles
 
-### Styles
+The `<a>` element can be selected in CSS  similar to the standard buttons.
 
-The `<button>` element can be selected in CSS with `.en__socialShare.en__socialShare--mastodon` similar to the standard buttons. The base styles for `.en__socialShare` will apply. The `<img>` element can be selected with the same `.en__socialShare__image` selector and will pick up EN's base styles.
+* For Bluesky `.en__socialShare.en__socialShare--bluesky`
+* For Mastodon `.en__socialShare.en__socialShare--mastodon`
+* For Threads `.en__socialShare.en__socialShare--threads`
+
+The base styles for `.en__socialShare` will apply. The `<img>` element can be selected with the same `.en__socialShare__image` selector and will pick up EN's base styles.
+
+### Mastodon Popup
 
 The popup has the following DOM structure which will be appended to the `<body>` element:
 
