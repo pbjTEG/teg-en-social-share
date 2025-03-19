@@ -1,5 +1,5 @@
 # TEG Engaging Networks Social Share
-Add Bluesky or Mastodon buttons to Engaging Network's social share buttons. As a demonstration, there's a live static page with both Bluesky and Mastodon buttons on TEG's EN Sandbox site:
+Add Bluesky, Mastodon, or Threads buttons to Engaging Network's social share buttons. As a demonstration, there's a live static page with Bluesky, Mastodon, and Threads buttons on TEG's EN Sandbox site:
 
 https://ca-sandbox.engagingnetworks.io/page/154412/action/1
 
@@ -7,6 +7,7 @@ https://ca-sandbox.engagingnetworks.io/page/154412/action/1
 
 [Add_Bluesky.html](src/Add_Bluesky.html)  
 [Add_Mastodon.html](src/Add_Mastodon.html)
+[Add_Threads.html](src/Add_Threads.html)
 
 ## Dependancies
 
