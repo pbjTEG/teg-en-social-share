@@ -1,11 +1,10 @@
 # TEG Engaging Networks Social Share
-Add Bluesky, Mastodon, or Threads buttons to Engaging Network's social share buttons. As a demonstration, there's a live static page with Bluesky, Mastodon, and Threads buttons on TEG's EN Sandbox site:
+Add Mastodon or Threads buttons to Engaging Network's social share buttons. As a demonstration, there's a live static page with Mastodon and Threads buttons on TEG's EN Sandbox site:
 
 https://ca-sandbox.engagingnetworks.io/page/154412/action/1
 
 ## Content
 
-[Add_Bluesky.html](src/Add_Bluesky.html)  
 [Add_Mastodon.html](src/Add_Mastodon.html)  
 [Add_Threads.html](src/Add_Threads.html)
 
@@ -29,7 +28,6 @@ The customization will pick up title and canonical URL from the meta data tags g
 
 In order to use the "custom" image setting in EN, there is an `<img>` tag which allows linking to a custom image. The `id` attribute of the image must be:
 
-* For Bluesky `customBluesky`
 * For Mastodon `customMastodon`
 * For Threads `customThreads`
 
@@ -39,19 +37,18 @@ For example:
 
 ## What Happens?
 
-### Bluesky and Threads
+### Threads
 
 The link will simply share the title and canonical URL.
 
 ### Mastodon
 
-The button will show a popup allowing the user to select (or specify) their Mastodon instance. Then, it will share the title and canonical URL just like the Bluesky and Threads links.
+The button will show a popup allowing the user to select (or specify) their Mastodon instance. Then, it will share the title and canonical URL just like the Threads link.
 
 ## Styles
 
 The `<a>` element can be selected in CSS  similar to the standard buttons.
 
-* For Bluesky `.en__socialShare.en__socialShare--bluesky`
 * For Mastodon `.en__socialShare.en__socialShare--mastodon`
 * For Threads `.en__socialShare.en__socialShare--threads`
 
